@@ -1,7 +1,7 @@
 require "project_metric_point_estimation/version"
 require "faraday"
 require "json"
-require "date"
+require "time"
 
 class ProjectMetricPointEstimation
   attr_reader :raw_data
@@ -60,7 +60,7 @@ class ProjectMetricPointEstimation
   def estimation(story)
     state_changes = {}
     transitions(story['id']).each do |t|
-      state_changes[t['state']] = Date.parse(t['occurred_at'])
+      state_changes[t['state']] = Time.parse t['occurred_at']
     end
     if state_changes.key? 'started' and state_changes.key? 'finished'
       story['dev_time'] = state_changes['finished'] - state_changes['started']

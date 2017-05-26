@@ -1,7 +1,6 @@
 require "project_metric_point_estimation/version"
 require "faraday"
 require "json"
-require "time"
 
 class ProjectMetricPointEstimation
   attr_reader :raw_data
@@ -14,16 +13,9 @@ class ProjectMetricPointEstimation
     @raw_data = raw_data
   end
 
-  def image
-    refresh unless @raw_data
-    { chartType: 'point_estimation',
-      titleText: 'Point Estimation',
-      data: @raw_data }.to_json
-  end
-
   def refresh
-    @raw_data = stories.map { |s| estimation s }
-    @raw_data.select { |s| s['dev_time'] }
+    @raw_data ||= stories
+    @score = @image = nil
   end
 
   def raw_data=(new)
@@ -33,8 +25,20 @@ class ProjectMetricPointEstimation
   end
 
   def score
-    refresh unless @raw_data
-    @score = @raw_data.length
+    @raw_data ||= stories
+    @score ||= (@raw_data.map { |s| get_estimation s }\
+                         .inject { |sum, e| sum + e }) / stories.length.to_f
+  end
+
+  def image
+    @raw_data ||= stories
+    point_buckets = @raw_data.map { |s| get_estimation s }.uniq.sort
+    counting = point_buckets.map do |pnt|
+      @raw_data.count { |s| get_estimation(s).eql? pnt }
+    end
+    @image ||= { chartType: 'point_estimation',
+                 titleText: 'Point distribution',
+                 data: { data: counting, series: point_buckets } }
   end
 
   def self.credentials
@@ -43,32 +47,12 @@ class ProjectMetricPointEstimation
 
   private
 
-  def project
-    JSON.parse(
-        @conn.get("projects/#{@project}").body
-    )
-  end
-
   def stories
-    JSON.parse(
-        @conn.get("projects/#{@project}/stories").body
-    )
+    JSON.parse(@conn.get("projects/#{@project}/stories").body)
   end
 
-  def transitions(story_id)
-    JSON.parse(
-        @conn.get("projects/#{@project}/stories/#{story_id}/transitions").body
-    )
+  def get_estimation(s)
+    s['estimate'] ? s['estimate'] : 0
   end
 
-  def estimation(story)
-    state_changes = {}
-    transitions(story['id']).each do |t|
-      state_changes[t['state']] = Time.parse t['occurred_at']
-    end
-    if state_changes.key? 'started' and state_changes.key? 'finished'
-      story['dev_time'] = state_changes['finished'] - state_changes['started']
-    end
-    story
-  end
 end

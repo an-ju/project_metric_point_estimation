@@ -14,8 +14,8 @@ class ProjectMetricPointEstimation
   end
 
   def refresh
-    @raw_data ||= stories
     @score = @image = nil
+    @raw_data ||= stories
   end
 
   def raw_data=(new)
@@ -38,7 +38,7 @@ class ProjectMetricPointEstimation
     end
     @image ||= { chartType: 'point_estimation',
                  titleText: 'Point distribution',
-                 data: { data: counting, series: point_buckets } }
+                 data: { data: counting, series: point_buckets } }.to_json
   end
 
   def self.credentials

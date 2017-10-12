@@ -26,8 +26,8 @@ class ProjectMetricPointEstimation
 
   def score
     @raw_data ||= stories
-    @score ||= (@raw_data.map { |s| get_estimation s }\
-                         .inject { |sum, e| sum + e }) / stories.length.to_f
+    l = @raw_data.length.to_f
+    @score ||= @raw_data.reject { |s| get_estimation(s) < 0 }.length / l
   end
 
   def image
@@ -52,7 +52,7 @@ class ProjectMetricPointEstimation
   end
 
   def get_estimation(s)
-    s['estimate'] ? s['estimate'] : 0
+    s['estimate'] ? s['estimate'] : -1
   end
 
 end

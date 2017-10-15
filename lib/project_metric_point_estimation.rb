@@ -48,7 +48,9 @@ class ProjectMetricPointEstimation
   private
 
   def stories
-    JSON.parse(@conn.get("projects/#{@project}/stories").body)
+    JSON.parse(@conn.get("projects/#{@project}/stories").body).reject do |s|
+      s['current_state'].eql?('unstarted') || s['current_state'].eql?('unscheduled')
+    end
   end
 
   def get_estimation(s)
